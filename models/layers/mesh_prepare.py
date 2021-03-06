@@ -127,13 +127,19 @@ def build_gemm(mesh, faces, face_areas):
     edges_count = 0
     nb_count = []
     for face_id, face in enumerate(faces):
+        # Keeps track of all edges in a face. These edges are not unique, since one edge is shared among two triangles
+        # unless it is a border edge (or non-manifold)
         faces_edges = []
         for i in range(3):
             cur_edge = (face[i], face[(i + 1) % 3])
             faces_edges.append(cur_edge)
         for idx, edge in enumerate(faces_edges):
+            # The vertex ids in an edge is sorted ascending
             edge = tuple(sorted(list(edge)))
             faces_edges[idx] = edge
+            # Make sure we only add an edge once to the final set of edges
+            # edge2key - translates between edges and their id
+            # edges_count keeps track of the current added edge id
             if edge not in edge2key:
                 edge2key[edge] = edges_count
                 edges.append(list(edge))
@@ -301,6 +307,7 @@ def get_edge_faces(faces):
 
 
 def set_edge_lengths(mesh, edge_points=None):
+    # TODO: Rasmus: I do think this should be if edge_points is None
     if edge_points is not None:
         edge_points = get_edge_points(mesh)
     edge_lengths = np.linalg.norm(mesh.vs[edge_points[:, 0]] - mesh.vs[edge_points[:, 1]], ord=2, axis=1)
@@ -311,6 +318,7 @@ def extract_features(mesh):
     features = []
     edge_points = get_edge_points(mesh)
     set_edge_lengths(mesh, edge_points)
+    # TODO: Rasmus, could add a check for zero lengths edges
     with np.errstate(divide='raise'):
         try:
             for extractor in [dihedral_angle, symmetric_opposite_angles, symmetric_ratios]:
